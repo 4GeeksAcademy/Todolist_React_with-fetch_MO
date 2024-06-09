@@ -1,22 +1,52 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Card from './Card'; // Asegúrate de que la ruta sea correcta
 
 const Home = () => {
     const [inputValue, setInputValue] = useState("");
     const [todos, setTodos] = useState([]);
 
+    const fetchTodos = () => {
+        fetch('https://playground.4geeks.com/todo/user/alesanchezr')
+            .then(response => response.json())
+            .then(data => setTodos(data))
+            .catch(error => console.error("Error fetching todos:", error));
+    };
+
+    useEffect(() => {
+        fetchTodos();
+    }, []);
+
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && inputValue.trim() !== "") {
-            setTodos([...todos, inputValue]);
+            const newTodos = [...todos, { label: inputValue, done: false }];
+            setTodos(newTodos);
+            updateTodosOnServer(newTodos);
             setInputValue("");
         }
     };
 
     const deleteTodo = (indexToDelete) => {
-        setTodos(todos.filter((_, index) => index !== indexToDelete));
+        const newTodos = todos.filter((_, index) => index !== indexToDelete);
+        setTodos(newTodos);
+        updateTodosOnServer(newTodos);
     };
 
     const resetTodos = () => {
         setTodos([]);
+        updateTodosOnServer([]);
+    };
+
+    const updateTodosOnServer = (newTodos) => {
+        fetch('https://playground.4geeks.com/todo/user/alesanchezr', {
+            method: "PUT",
+            body: JSON.stringify(newTodos),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => console.log("Updated todos on server:", data))
+        .catch(error => console.error("Error updating todos:", error));
     };
 
     return (
@@ -41,7 +71,7 @@ const Home = () => {
                             <div className="input-group">
                                 <input
                                     type="text"
-                                    value={item}
+                                    value={item.label}
                                     readOnly
                                     className="form-control"
                                 />
@@ -51,14 +81,14 @@ const Home = () => {
                                         onClick={() => deleteTodo(index)}
                                         style={{ cursor: "pointer" }}
                                     >
-                                       <i class="fa-solid fa-trash"></i>
+                                        <i className="fa-solid fa-trash"></i>
                                     </span>
                                 </div>
                             </div>
                         </li>
                     ))}
                 </ul>
-               
+                <button className="btn btn-danger mt-3" onClick={resetTodos}>Clear All</button>
             </div>
         </div>
     );
