@@ -1,97 +1,126 @@
-import React, { useState, useEffect } from "react";
-import Card from './Card'; // Asegúrate de que la ruta sea correcta
+import React, { useEffect, useState } from "react";
+import imagen from "./../../img/coffee-1137689_640.jpg";
 
+
+
+//create your first component
 const Home = () => {
-    const [inputValue, setInputValue] = useState("");
-    const [todos, setTodos] = useState([]);
 
-    const fetchTodos = () => {
-        fetch('https://playground.4geeks.com/todo/user/alesanchezr')
-            .then(response => response.json())
-            .then(data => setTodos(data))
-            .catch(error => console.error("Error fetching todos:", error));
-    };
+	const [task, setTask] = useState("");
+	const [tasks, setTasks] = useState([]);
+	const [user, setUser] = useState();
 
-    useEffect(() => {
-        fetchTodos();
-    }, []);
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && inputValue.trim() !== "") {
-            const newTodos = [...todos, { label: inputValue, done: false }];
-            setTodos(newTodos);
-            updateTodosOnServer(newTodos);
-            setInputValue("");
-        }
-    };
 
-    const deleteTodo = (indexToDelete) => {
-        const newTodos = todos.filter((_, index) => index !== indexToDelete);
-        setTodos(newTodos);
-        updateTodosOnServer(newTodos);
-    };
+	const createUser = async () => {
+		await fetch("https://playground.4geeks.com/todo/users/marolivieri",
+			{ method: "POST" }
+		).then(resp => {
+			if (resp.ok) {
+				alert("se ha creado el usuario correctamente")
+				getUser();
+			}
+		})
+	}
 
-    const resetTodos = () => {
-        setTodos([]);
-        updateTodosOnServer([]);
-    };
+	const getUser = async () => {
+		await fetch("https://playground.4geeks.com/todo/users/marolivieri").then(resp => {
+			console.log(resp)
+			if (!resp.ok) {
+				createUser();
+			}
+			return resp.json()
+		}).then(user => setUser(user))
+	};
 
-    const updateTodosOnServer = (newTodos) => {
-        fetch('https://playground.4geeks.com/todo/user/alesanchezr', {
-            method: "PUT",
-            body: JSON.stringify(newTodos),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
-        .then(response => response.json())
-        .then(data => console.log("Updated todos on server:", data))
-        .catch(error => console.error("Error updating todos:", error));
-    };
+	useEffect(() => {
+		getUser();
+	}, [])
 
-    return (
-        <div>
-            <div className="container">
-                <h1 className="text-center mt-5">My todos</h1>
-                <ul className="list-group">
-                    <li className="list-group-item">
-                        <div className="input-group">
-                            <input
-                                type="text"
-                                onChange={(e) => setInputValue(e.target.value)}
-                                value={inputValue}
-                                onKeyPress={handleKeyPress}
-                                placeholder="What do you need to do"
-                                className="form-control"
-                            />
-                        </div>
-                    </li>
-                    {todos.map((item, index) => (
-                        <li key={index} className="list-group-item">
-                            <div className="input-group">
-                                <input
-                                    type="text"
-                                    value={item.label}
-                                    readOnly
-                                    className="form-control"
-                                />
-                                <div className="input-group-append">
-                                    <span
-                                        className="input-group-text"
-                                        onClick={() => deleteTodo(index)}
-                                        style={{ cursor: "pointer" }}
-                                    >
-                                        <i className="fa-solid fa-trash"></i>
-                                    </span>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-                <button className="btn btn-danger mt-3" onClick={resetTodos}>Clear All</button>
-            </div>
-        </div>
-    );
-};
+	const createTask = async (task) => {
+		await fetch("https://playground.4geeks.com/todo/users/marolivieri", {
+			method: "POST",
+			headers: {
+				"content-type": "application/json"
+
+			},
+			body: JSON.stringify({
+				"label": task,
+				"is_done": false
+			})
+		}).then(resp => {
+			if (resp.ok) {
+				return resp.json()
+			}
+		}).then(respJson => {
+			const userTaks = user.todos;
+			const newUser = {
+				...user,
+				todos: [...userTaks, respJson]
+			};
+			setUser(newUser);
+		})
+	}
+
+	const validateTask = (task) => {
+		if (!task || !task.trim()) {
+			alert("el valor de la tarea no puede ser vacio")
+		}
+		createTask(task)
+		setTask("");
+	}
+
+	const deleteTask = async (task) => {
+		const id = task.id;
+		await fetch(`https://playground.4geeks.com/todo/todos/${id}`, {
+			method: "DELETE"
+		}).then(resp => {
+			if (resp.ok) {
+				const userTaks = user.todos.filter(item => item.id !== task.id)
+				const newUser = {
+					...user,
+					todos: [...userTaks]
+				};
+				setUser(newUser)
+			}
+		})
+
+	}
+
+
+	return (
+		<><div className="container">
+
+			<h1 className="text-center mt-5">Lista de Tareas</h1>
+			<img src={imagen} style={{
+				width: "200px",
+				position: "absolute",
+				top: "30px",
+				right: "30px"
+			}} />
+
+			<div className="todolist">
+				<input placeholder="add task"
+					onChange={(Event) => setTask(Event.target.value)}
+					onKeyDown={(Event) => Event.key === "Enter" && validateTask(task)}
+					type="text"
+					value={task} />
+
+					{user && user.todos.map((item) =>
+					 <li key={item.id}>
+					{item.label}
+					<span onClick={() => deleteTask(item)}> <i className="fas fa-trash-alt"></i>
+					</span>
+				</li>)}
+
+			</div><p className="text-center">
+				{user && user.todos.length ?
+					<span>Tienes {user && user.todos.length} tareas pendientes</span> : <span> No hay tareas pendientes</span>}
+			</p>
+			
+		</div>
+		</>
+	);
+}
 
 export default Home;
